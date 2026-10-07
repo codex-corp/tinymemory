@@ -44,7 +44,8 @@ use crate::error::MemoryError;
 // they cross the module boundary, re-exported here so the two trees stay the
 // same shape and the types stay the same types.
 pub use tinymemory_bus::provider::sessions::{
-    CodingSessionIngestReport, CodingSessionIngestRequest, CodingSessionSource,
+    CodingSessionFailure, CodingSessionIngestReport, CodingSessionIngestRequest,
+    CodingSessionSource,
 };
 
 /// Reading and distilling local coding-agent session transcripts.

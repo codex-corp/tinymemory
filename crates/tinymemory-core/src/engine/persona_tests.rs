@@ -203,3 +203,40 @@ async fn ingestion_validates_each_mode_and_budget_before_provider_wiring() {
     .unwrap_err();
     assert!(!backfill.to_string().is_empty());
 }
+
+#[tokio::test]
+async fn concurrent_worker_is_refused_before_provider_wiring() {
+    let temp = tempdir().unwrap();
+    let mut config = TestHostConfig::default();
+    config.workspace_dir = temp.path().to_path_buf();
+    fs::create_dir_all(temp.path().join("persona")).unwrap();
+    let lock = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(temp.path().join("persona/coding-import.lock"))
+        .unwrap();
+    lock.try_lock().unwrap();
+    let error = ingest_coding_sessions(
+        &config,
+        CodingSessionIngestRequest {
+            backfill: false,
+            max_sessions: 5,
+        },
+    )
+    .await
+    .unwrap_err();
+    assert!(error.to_string().starts_with("import_in_progress:"));
+}
+
+#[test]
+fn invalid_scope_fails_closed_and_absent_scope_preserves_general_import() {
+    let temp = tempdir().unwrap();
+    let mut config = TestHostConfig::default();
+    config.workspace_dir = temp.path().to_path_buf();
+    assert!(transcript_project(&config).unwrap().is_none());
+    fs::create_dir_all(temp.path().join("persona")).unwrap();
+    fs::write(temp.path().join("persona/import-scope.json"), "{broken}").unwrap();
+    assert!(transcript_project(&config).is_err());
+}

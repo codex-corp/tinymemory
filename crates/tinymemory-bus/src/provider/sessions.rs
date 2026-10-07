@@ -67,6 +67,23 @@ pub struct CodingSessionSource {
     /// "412", and the difference matters on the one screen where the number is
     /// a promise about how long an import will take.
     pub scan_truncated: bool,
+    /// Driver-owned Codex project restriction, when configured.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub project_scope: Option<String>,
+    /// Files excluded because their project provenance did not match.
+    #[serde(default)]
+    pub sessions_excluded: usize,
+}
+
+/// Sanitised diagnostic for a session that remains retryable.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CodingSessionFailure {
+    /// Stable machine-readable cause; no raw provider message.
+    pub code: String,
+    /// Opaque correlation identifier, not a local file path.
+    pub session_id: String,
+    /// Safe explanation and remediation.
+    pub summary: String,
 }
 
 /// A request to distil coding sessions into observations.
@@ -150,6 +167,15 @@ pub struct CodingSessionIngestReport {
     /// driver, not a promise that the output is a file.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pack_path: Option<String>,
+    /// Newly persisted digest pieces or recovery splits; progress before completion.
+    #[serde(default)]
+    pub checkpoints_advanced: usize,
+    /// Safe, bounded failures retained for retry.
+    #[serde(default)]
+    pub failures: Vec<CodingSessionFailure>,
+    /// Codex transcripts excluded by project provenance.
+    #[serde(default)]
+    pub sessions_excluded: usize,
 }
 
 #[cfg(test)]

@@ -742,3 +742,7 @@ mod exports {
         lazy = false,
     }
 }
+
+#[cfg(test)]
+#[path = "project_scope_tests.rs"]
+mod project_scope_tests;

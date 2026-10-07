@@ -3425,10 +3425,13 @@ impl MemoryCodingSessions for TinycortexProvider {
         // other synchronous read here. It takes no config — the roots come from
         // the environment, driver-side, which is why no path appears in the
         // contract.
-        let statuses =
-            tokio::task::spawn_blocking(tinymemory_core::tinycortex::coding_session_status)
-                .await
-                .map_err(|error| Self::other("scan coding sessions", error))?;
+        let config = self.config.clone();
+        let statuses = tokio::task::spawn_blocking(move || {
+            tinymemory_core::tinycortex::coding_session_status_with_config(&config)
+        })
+        .await
+        .map_err(|error| Self::other("scan coding sessions", error))?
+        .map_err(|error| Self::other("scan scoped coding sessions", error))?;
         Ok(statuses
             .into_iter()
             .map(|status| CodingSessionSource {
@@ -3438,6 +3441,8 @@ impl MemoryCodingSessions for TinycortexProvider {
                 evidence_units: status.evidence_units,
                 invalid_files: status.invalid_files,
                 scan_truncated: status.scan_truncated,
+                project_scope: status.project_scope,
+                sessions_excluded: status.sessions_excluded,
             })
             .collect())
     }
@@ -3481,6 +3486,19 @@ impl MemoryCodingSessions for TinycortexProvider {
             observations: response.observations,
             budget_hit: response.budget_hit,
             pack_path: response.pack_path,
+            checkpoints_advanced: response.checkpoints_advanced,
+            sessions_excluded: response.sessions_excluded,
+            failures: response
+                .failures
+                .into_iter()
+                .map(
+                    |f| tinymemory_api::provider::sessions::CodingSessionFailure {
+                        code: f.code,
+                        session_id: f.session_id,
+                        summary: f.summary,
+                    },
+                )
+                .collect(),
         })
     }
 }

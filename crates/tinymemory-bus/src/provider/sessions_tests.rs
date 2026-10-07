@@ -61,3 +61,22 @@ fn an_ingest_report_without_a_pack_path_omits_it() {
     assert!(encoded.get("pack_path").is_none());
     assert_eq!(encoded["budget_hit"], serde_json::json!(false));
 }
+
+#[test]
+fn older_reports_and_statuses_default_optional_import_fields() {
+    let source: CodingSessionSource = serde_json::from_value(serde_json::json!({
+        "kind":"codex", "available":true, "session_files":1, "evidence_units":2,
+        "invalid_files":0, "scan_truncated":false
+    }))
+    .expect("legacy source");
+    assert_eq!(source.project_scope, None);
+    assert_eq!(source.sessions_excluded, 0);
+    let report: CodingSessionIngestReport = serde_json::from_value(serde_json::json!({
+        "mode":"incremental", "files_seen":1, "sessions_processed":1,
+        "sessions_skipped":0, "sessions_failed":0, "evidence_units":2,
+        "observations":1, "budget_hit":false
+    }))
+    .expect("legacy report");
+    assert_eq!(report.checkpoints_advanced, 0);
+    assert!(report.failures.is_empty());
+}

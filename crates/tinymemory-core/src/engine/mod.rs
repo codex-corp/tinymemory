@@ -53,8 +53,9 @@ pub use config::{engine_config, memory_config_from};
 pub use embeddings::SeamEmbedder;
 pub use ingest::{context as ingest_context, HostTreeJobSink};
 pub use persona::{
-    coding_session_status, coding_session_status_for_roots, ingest_coding_sessions,
-    CodingSessionIngestRequest, CodingSessionIngestResponse, CodingSessionSourceStatus,
+    coding_session_status, coding_session_status_for_roots, coding_session_status_with_config,
+    ingest_coding_sessions, CodingSessionIngestRequest, CodingSessionIngestResponse,
+    CodingSessionSourceStatus,
 };
 pub use queue_driver::{
     classify_worker_error, HostQueueDelegates, WorkerErrorAction, WorkerReport,
