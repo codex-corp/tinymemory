@@ -12,7 +12,7 @@ use walkdir::WalkDir;
 use crate::Config;
 
 const DEFAULT_MAX_SESSIONS: usize = 100;
-const MAX_MAX_SESSIONS: usize = 5;
+const MAX_MAX_SESSIONS: usize = 1_000;
 const MAX_STATUS_SESSION_FILES: usize = 1_000;
 const MAX_STATUS_SESSION_FILE_BYTES: u64 = 4 * 1024 * 1024;
 const MAX_STATUS_TOTAL_BYTES: u64 = 16 * 1024 * 1024;
@@ -309,7 +309,13 @@ pub async fn ingest_coding_sessions(
         anyhow::anyhow!("import_in_progress: an import is already running; wait for it to finish")
     })?;
     let (claude_root, codex_root) = roots_from_environment();
-    let max_sessions = request.max_sessions.clamp(1, MAX_MAX_SESSIONS);
+    let project = transcript_project(config)?;
+    let ceiling = if project.is_some() {
+        5
+    } else {
+        MAX_MAX_SESSIONS
+    };
+    let max_sessions = request.max_sessions.clamp(1, ceiling);
     let mode = if request.backfill {
         RunMode::Backfill
     } else {
@@ -325,7 +331,6 @@ pub async fn ingest_coding_sessions(
         "[memory_persona] coding session ingestion: entry"
     );
 
-    let project = transcript_project(config)?;
     let workspace = if let Some(root) = &project {
         let id: String = Sha256::digest(root.to_string_lossy().as_bytes())
             .iter()
@@ -353,7 +358,9 @@ pub async fn ingest_coding_sessions(
     };
     persona.codex_root = Some(codex_root);
     persona.codex_project_root = project.clone();
-    persona.digest_concurrency = 1;
+    if project.is_some() {
+        persona.digest_concurrency = 1;
+    }
     // This product surface is deliberately scoped to coding-session history.
     // Repository history and instruction files can be wired separately with
     // their own disclosure and cost controls.
@@ -363,7 +370,11 @@ pub async fn ingest_coding_sessions(
     persona.run_budget.max_sessions = max_sessions;
     // Successful Codex pieces persist across passes, so long sessions advance
     // without opening an unbounded provider-call budget.
-    persona.run_budget.max_llm_calls = 5;
+    persona.run_budget.max_llm_calls = if project.is_some() {
+        5
+    } else {
+        max_sessions as u32
+    };
 
     let (available, _) = crate::chat_host::summarizer_available(config);
     anyhow::ensure!(available,

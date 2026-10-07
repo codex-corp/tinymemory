@@ -13,7 +13,8 @@ a Codex project pass. Project cursors, window checkpoints and facet trees live
 under a hash of the canonical project path. Publishing the project persona
 preserves the prior general persona; unrelated document memory is untouched.
 
-Each pass selects at most five sessions and spends at most five digest calls.
+Each project pass selects at most five sessions and spends at most five digest calls.
+General imports retain their existing batch ceiling and Claude call budget.
 Scoped tree reduction shares that ceiling, using the existing deterministic
 fallback when it is spent. Successful digest pieces, including empty results,
 are stored atomically before the next request. Their keys include source,
